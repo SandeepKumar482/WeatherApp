@@ -1,5 +1,6 @@
 package com.sandeep.weatherapp
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Address
@@ -11,6 +12,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.ACTION_NEXT_HTML_ELEMENT
 import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.toolbox.JsonObjectRequest
@@ -37,10 +39,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtCondition: TextView
     private lateinit var weatherAdapter: RVweatherAdapter
     private lateinit var locationManager: LocationManager
-    private var permissionCode: Int = 1
+    private val permissionCode: Int = 101
     private lateinit var cityName: String
     private val weatherList = arrayListOf<RVweather>()
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,22 +67,32 @@ class MainActivity : AppCompatActivity() {
 
 
 
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            val perm =
-                "android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION"
-            ActivityCompat.requestPermissions(this, arrayOf(perm), permissionCode)
-        }
+//        if (ActivityCompat.checkSelfPermission(
+//                this,
+//                android.Manifest.permission.ACCESS_FINE_LOCATION
+//            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+//                this,
+//                android.Manifest.permission.ACCESS_COARSE_LOCATION
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) {
+//            val perm =
+//                "android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION"
+//            ActivityCompat.requestPermissions(this, arrayOf(perm), permissionCode)
+//        }
+
 
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED) {
+            val perm = "android.Manifest.permission.ACCESS_FINE_LOCATION"
+            ActivityCompat.requestPermissions(this, arrayOf(perm), permissionCode)
+
+            return
+        }
         fusedLocationProviderClient.lastLocation.addOnCompleteListener { task ->
             var location: Location? = task.result
             // println("$.it")
@@ -134,7 +147,7 @@ class MainActivity : AppCompatActivity() {
                 print("Respionse Is : $it")
                 try {
                     val temperature: String = it.getJSONObject("current").getString("temp_c")
-                    txtTemp.text = temperature+"°C "
+                    txtTemp.text = temperature+" °C "
                     val isday: Int = it.getJSONObject("current").getInt("is_day")
                     val condition: String =
                         it.getJSONObject("current").getJSONObject("condition").getString("text")
