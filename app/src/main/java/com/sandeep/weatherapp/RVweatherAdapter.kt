@@ -39,7 +39,7 @@ class RVweatherAdapter(val context: Context, val WeatherList: ArrayList<RVweathe
         }
         //holder.txtTime.text=weather.time
         holder.RvTemp.text=weather.temp+"°C"
-        Picasso.get().load("http:"+weather.icon).error(R.mipmap.ic_launcher).into(holder.ivCondition)
+        Picasso.get().load("https:"+weather.icon).into(holder.ivCondition)
 
         holder.txtWindSpeed.text=weather.wind+"Km/h"
     }
