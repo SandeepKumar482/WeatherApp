@@ -1,6 +1,8 @@
+
 package com.sandeep.weatherapp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Address
@@ -10,6 +12,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.view.View
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -39,13 +42,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtCondition: TextView
     private lateinit var weatherAdapter: RVweatherAdapter
     private lateinit var locationManager: LocationManager
-    private val permissionCode: Int = 101
+    private var permissionCode: Int = 1
     private lateinit var cityName: String
     private val weatherList = arrayListOf<RVweather>()
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
 
-
+    @SuppressLint("NewApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -65,34 +68,44 @@ class MainActivity : AppCompatActivity() {
         weatherAdapter = RVweatherAdapter(this, weatherList)
         recyclerView.adapter = weatherAdapter
 
+        cityName ="delhi"
 
+        val requestPermissionLauncher =
+            registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                if (isGranted) {
+                    locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                    fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
-//        if (ActivityCompat.checkSelfPermission(
-//                this,
-//                android.Manifest.permission.ACCESS_FINE_LOCATION
-//            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-//                this,
-//                android.Manifest.permission.ACCESS_COARSE_LOCATION
-//            ) != PackageManager.PERMISSION_GRANTED
-//        ) {
-//            val perm =
-//                "android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION"
-//            ActivityCompat.requestPermissions(this, arrayOf(perm), permissionCode)
-//        }
+                    fusedLocationProviderClient.lastLocation.addOnCompleteListener { task ->
+                        var location: Location? = task.result
+                        // println("$.it")
+                        if (location != null) {
+                            //   println("$.it")
+                            cityName = getCityName(location.longitude, location.latitude)
+                            getWeatherInfo(cityName)
+                        }
+                    }
+                } else {
+                    progressBar.visibility = View.GONE
+                    rlHome.visibility = View.VISIBLE
+                    weatherList.clear()
+                }
+            }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(
+                Manifest.permission.ACCESS_FINE_LOCATION)
 
+        }
 
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED) {
-            val perm = "android.Manifest.permission.ACCESS_FINE_LOCATION"
-            ActivityCompat.requestPermissions(this, arrayOf(perm), permissionCode)
-
-            return
-        }
         fusedLocationProviderClient.lastLocation.addOnCompleteListener { task ->
             var location: Location? = task.result
             // println("$.it")
@@ -147,7 +160,7 @@ class MainActivity : AppCompatActivity() {
                 print("Respionse Is : $it")
                 try {
                     val temperature: String = it.getJSONObject("current").getString("temp_c")
-                    txtTemp.text = temperature+" °C "
+                    txtTemp.text = temperature+"°C "
                     val isday: Int = it.getJSONObject("current").getInt("is_day")
                     val condition: String =
                         it.getJSONObject("current").getJSONObject("condition").getString("text")
@@ -187,6 +200,7 @@ class MainActivity : AppCompatActivity() {
 
             },
                 com.android.volley.Response.ErrorListener {
+                    print("Erorr Is $it")
                     Toast.makeText(this, "Connection Error Occurred", Toast.LENGTH_SHORT).show()
                 }) {
 
@@ -203,7 +217,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCityName(lon: Double, lat: Double): String {
-        var cityName = "Not Found"
+        var cityName = "delhi"
         val geo = Geocoder(baseContext, Locale.getDefault())
         try {
             val address: List<Address> = geo.getFromLocation(lat, lon, 10)
